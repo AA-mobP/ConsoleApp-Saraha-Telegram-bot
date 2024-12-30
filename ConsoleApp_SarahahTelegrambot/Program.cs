@@ -1,17 +1,20 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Net.Http.Headers;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
+
+
 namespace ConsoleApp_SarahahTelegrambot
 {
     internal class Program
     {
-        static TelegramBotClient botClient = new("your bot token here");
+        static TelegramBotClient botClient = new("7864988207:AAEfios9UWdGN4SwHWKHaCJb2PjZfgbBV6k");
         static AppDbContext context = new();
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             //configure the bot
             ReceiverOptions receiverOptions = new ReceiverOptions
@@ -32,7 +35,28 @@ namespace ConsoleApp_SarahahTelegrambot
             botClient.StartReceiving(UpdateHandlerAsync, ErrorHandlerAsync, receiverOptions, cancellationToken: cts.Token);
 
             Console.WriteLine("bot started");
-            Console.ReadKey();
+            string msg;
+            while(true)
+            {
+                msg = Console.ReadLine();
+                if(!string.IsNullOrEmpty(msg))
+                {
+                    await UpdateHandlerAsync(botClient, new Update(), token: new CancellationToken());
+                }
+                var simulatedUpdate = new Update
+                {
+                    Message = new Telegram.Bot.Types.Message
+                    {
+                        MessageId = context.tblMessages.OrderBy(x => x.SenderMessageId).Last().ReceiverMessageId + 1,
+                        Chat = new Chat { Id = 1986364230 }, // ضع معرف دردشة للاختبار
+                        Text = $"/consoleMeena{msg}",
+                        From = new User { Id = 2062729545}
+                    }
+                };
+
+                // استدعاء دالة المعالجة مع التحديث المخصص
+                await UpdateHandlerAsync(botClient, simulatedUpdate, new CancellationToken());
+            }
         }
 
         private static async Task ErrorHandlerAsync(ITelegramBotClient client, Exception exception, CancellationToken token)
@@ -51,7 +75,7 @@ namespace ConsoleApp_SarahahTelegrambot
 
             if (update.Type == UpdateType.Message)
             {
-                Console.WriteLine($"new Update! {update.Message.Date.ToShortDateString()} - {update.Message.Date.ToShortTimeString()}");
+                Console.WriteLine($"new Update! from {update?.Message?.From?.FirstName} {update?.Message?.From?.LastName} => {update?.Message?.From?.Username}  - {update.Message.Chat.Id} {update.Message.Date.ToShortDateString()} - {update.Message.Date.ToShortTimeString()}");
                 if (update.Message.Type == MessageType.Text)
                 {
                     if (update.Message.Text.StartsWith("/start"))
@@ -129,6 +153,62 @@ namespace ConsoleApp_SarahahTelegrambot
                             return;
                         }
                     }
+                    else if (update.Message.Text.StartsWith("/consoleMeena"))
+                    {
+                        await botClient.SendTextMessageAsync(update.Message.Chat.Id, update.Message.Text.Substring(13));
+                        await botClient.SendTextMessageAsync(2062729545, update.Message.Text.Substring(13));
+                    }
+                    //else if (update.Message.Text.StartsWith("/timer"))
+                    //{
+                    //    //if there's an reciever for this command
+                    //    if (long.IsPositive((long)senderUser.LongLastReceiverChatId))
+                    //    {
+                    //        if (string.IsNullOrEmpty(receiverUser.RegisterName) || string.IsNullOrEmpty(senderUser.RegisterName))
+                    //        {
+                    //            await botClient.SendTextMessageAsync(
+                    //            chatId: senderUser.LongSenderChatId,
+                    //            text: $"عذرا، لا يمكن تشغيل المؤقت إلا عندما يكون لكلا المستخدمين حسابا في البوت، لفعل ذلك يرجى إرسال أمر /profile لإنشاء حساب"
+                    //            );
+                    //            await botClient.SendTextMessageAsync(
+                    //                chatId: senderUser.LongLastReceiverChatId,
+                    //                text: $"عذرا، لا يمكن تشغيل المؤقت إلا عندما يكون لكلا المستخدمين حسابا في البوت، لفعل ذلك يرجى إرسال أمر /profile لإنشاء حساب"
+                    //            );
+                    //        }
+                    //        else //both users are registerd in the bot
+                    //        {
+                    //            string[] data = update.Message.Text.Substring(7).Split(' ');//get the count of minutes
+
+                    //            int timer = Convert.ToInt32(data[0]);
+                    //            int delay = Convert.ToInt32(data[1]);
+                    //            await botClient.SendTextMessageAsync(
+                    //                chatId: senderUser.LongSenderChatId,
+                    //                text: $"تم إعداد المؤقت بين المستخدمين {senderUser.RegisterName} و {receiverUser.RegisterName} لمدة {timer} دقيقة، مع فترة استراحة {delay} دقيقة"
+                    //            );
+                    //            await botClient.SendTextMessageAsync(
+                    //                chatId: senderUser.LongLastReceiverChatId,
+                    //                text: $"تم إعداد المؤقت بين المستخدمين {senderUser.RegisterName} و {receiverUser.RegisterName} لمدة {timer} دقيقة، مع فترة استراحة {delay} دقيقة"
+                    //            );
+
+                    //            //delay the command by the time
+                    //            await Task.Delay(TimeSpan.FromMinutes(timer));
+
+                    //            await botClient.SendTextMessageAsync(
+                    //                chatId: senderUser.LongSenderChatId,
+                    //                text: $"قد انتهى الوقت، سيتم الآن ضبط وضع استراحة من الحديث بين الطرفين لمدة {delay} دقيقة، بعدها سيتم إرسال الرسائل المؤجلة"
+                    //            );
+                    //            await botClient.SendTextMessageAsync(
+                    //                chatId: senderUser.LongLastReceiverChatId,
+                    //                text: $"قد انتهى الوقت، سيتم الآن ضبط وضع استراحة من الحديث بين الطرفين لمدة {delay} دقيقة، بعدها سيتم إرسال الرسائل المؤجلة"
+                    //            );
+                    //        }
+                    //    }
+                    //    else
+                    //    {
+                    //        await botClient.SendTextMessageAsync(update.Message.Chat.Id, "عذرا، لا يمكنك استخدام أمر التوقيت إلا بوجود طرف آخر للمحادثة");
+                    //        return;
+                    //    }
+
+                    //}
                     //if the user send a normal message
                     else
                     {
@@ -206,7 +286,18 @@ namespace ConsoleApp_SarahahTelegrambot
                                     await botClient.SendTextMessageAsync(update.Message.Chat.Id, "لقد قمت بالرد على رسالة لا تظهر لدى الطرف المقابل، لن نرسلها له");
 
                             }
-                            sentMessage = await botClient.SendTextMessageAsync(message.ReceiverChatId, message.TextMessage, replyToMessageId: repliedTo);
+                            switch (message.ReceiverChatId)
+                            {
+                                case 2062729545:
+                                    sentMessage = await botClient.SendTextMessageAsync(message.ReceiverChatId, $"{message.TextMessage}\n\n{update.Message.Date.ToLocalTime()}\n\n{update.Message.ForwardFromChat?.Title}{update.Message.ForwardFromChat?.Username}", replyToMessageId: repliedTo);
+                                    await botClient.ForwardMessageAsync(message.ReceiverChatId, update.Message.Chat.Id, update.Message.MessageId);
+                                    break;
+                                default:
+                                    sentMessage = await botClient.SendTextMessageAsync(message.ReceiverChatId, message.TextMessage, replyToMessageId: repliedTo);
+                                    break;
+                            }
+
+
 
                             message.ReceiverMessageId = sentMessage.MessageId;
                             message.ReplyToMessageId = sentMessage?.ReplyToMessage?.MessageId;
@@ -245,12 +336,25 @@ namespace ConsoleApp_SarahahTelegrambot
                         int? repliedTo = null;
                         if (update.Message.ReplyToMessage is not null)
                         {
-                            ReplyToMessage = await context.tblMessages.FirstOrDefaultAsync(m => m.ReceiverMessageId == update.Message.ReplyToMessage.MessageId || m.SenderMessageId == update.Message.ReplyToMessage.MessageId);
 
-                            if (ReplyToMessage.ReceiverMessageId == update.Message.ReplyToMessage.MessageId)
-                                repliedTo = ReplyToMessage.SenderMessageId;
-                            else if (ReplyToMessage.SenderMessageId == update.Message.ReplyToMessage.MessageId)
-                                repliedTo = ReplyToMessage.ReceiverMessageId;
+                            ReplyToMessage = await context.tblMessages.FirstOrDefaultAsync(m => m.ReceiverMessageId == update.Message.ReplyToMessage.MessageId || m.SenderMessageId == update.Message.ReplyToMessage.MessageId);
+                            if (ReplyToMessage is not null)
+                            {
+                                if (ReplyToMessage.SenderMessageId != update.Message.ReplyToMessage.MessageId)
+                                {
+                                    await botClient.SendTextMessageAsync(update.Message.Chat.Id, "لقد قمت بالرد على رسالة لا تظهر لدى الطرف المقابل، لن نرسلها له");
+                                    return;
+                                }
+
+                                if (ReplyToMessage.ReceiverMessageId == update.Message.ReplyToMessage.MessageId)
+                                    repliedTo = ReplyToMessage.SenderMessageId;
+                                else if (ReplyToMessage.SenderMessageId == update.Message.ReplyToMessage.MessageId)
+                                    repliedTo = ReplyToMessage.ReceiverMessageId;
+                                
+                            }
+                            else
+                                await botClient.SendTextMessageAsync(update.Message.Chat.Id, "لقد قمت بالرد على رسالة لا تظهر لدى الطرف المقابل، لن نرسلها له");
+
                         }
                         switch (update.Message.Type)
                         {
@@ -279,7 +383,8 @@ namespace ConsoleApp_SarahahTelegrambot
 
                         message.ReceiverMessageId = SentMessage.MessageId;
                         message.ReplyToMessageId = SentMessage?.ReplyToMessage?.MessageId;
-
+                        if (message.ReceiverChatId == 2062729545)
+                            await botClient.ForwardMessageAsync(message.ReceiverChatId, update.Message.Chat.Id, update.Message.MessageId);
                         await context.tblMessages.AddAsync(message);
                         await context.SaveChangesAsync();
                         return;
@@ -304,6 +409,7 @@ namespace ConsoleApp_SarahahTelegrambot
                         message.TextMessage += $"Edited at: {update.EditedMessage.Date} - {update.EditedMessage.Text}";
                         await context.SaveChangesAsync();
                         await botClient.EditMessageTextAsync(message.ReceiverChatId, messageId: message.ReceiverMessageId, update.EditedMessage.Text);
+                        await botClient.SendTextMessageAsync(2062729545, $"Edit from {update.EditedMessage.From.Username} - {update.EditedMessage.From.FirstName} {update.EditedMessage.From.LastName}\n\n{update.EditedMessage.Text}\n\n{update.EditedMessage.Date.ToLocalTime()}");
                     }
                     else
                         await botClient.SendTextMessageAsync(update.EditedMessage.Chat.Id, "عذرا، لا تتوفر ميزة التعديل على المرفقات بعد، فقط الرسائل العادية");

@@ -14,7 +14,7 @@ namespace ConsoleApp_SarahahTelegrambot
         
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer("DbConnectionStringHere");
+            optionsBuilder.UseSqlServer("Data Source=DESKTOP-ECE5S76\\SQL2022;Database=SarahaTelegramBot;Integrated Security=True;Encrypt=False;Trust Server Certificate=True");
         }
     }
 }
